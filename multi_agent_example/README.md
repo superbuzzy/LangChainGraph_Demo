@@ -5,6 +5,7 @@
 
 1. 安装依赖：
    pip install langchain langgraph langchain-deepseek python-dotenv
+   
     Name: langchain
     Version: 0.3.25
 
