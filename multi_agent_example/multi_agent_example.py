@@ -222,7 +222,7 @@ class MultiAgentResearchTeam:
         analysis_result = state["analysis_result"]
         
         prompt = ChatPromptTemplate.from_template("""
-        你是一个专业的报告撰写员。请根据研究和分析结果撰写最终报告。
+        你是一个专业的中文报告撰写员。请根据研究和分析结果撰写最终报告。
         
         研究主题：{topic}
         分析摘要：{summary}
