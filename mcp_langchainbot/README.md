@@ -15,7 +15,7 @@
 
 1. **环境准备**
    - 安装依赖：`pip install -r requirements.txt`
-   - 配置 `.env` 文件，填写 `DEEPSEEK_API_KEY` 和 `OPENWEATHER_API_KEY` 等必要参数。
+   - 配置 `.env` 文件，填写 `DEEPSEEK_API_KEY` 和 `OPENWEATHER_API_KEY` 等必要参数（OpenWeather必须3.0，绑定支付才可以使用免费功能）。
 
 2. **启动 MCP 服务器**
    - 直接运行 `python weather_server.py` 和 `python write_server.py`，或通过主程序自动管理。
