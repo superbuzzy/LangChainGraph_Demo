@@ -46,7 +46,7 @@
 - [LangChain 官方文档](https://python.langchain.com/)
 - [MCP 多组件协议](https://github.com/langchain-ai/mcp)
 - [OpenWeather API](https://openweathermap.org/api)
-
+- [九天hector](https://space.bilibili.com/385842994?spm_id_from=333.337.0.0)
 ---
 如需扩展更多工具，只需实现新的 MCP 服务器并在 `servers_config.json` 中配置即可。
 
