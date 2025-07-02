@@ -1,15 +1,11 @@
 import httpx
 from typing import Any, Optional
 from mcp.server.fastmcp import FastMCP
-from datetime import datetime, timezone
-import time
+from datetime import datetime, timezone, timedelta
 
 import os 
 from dotenv import load_dotenv
 load_dotenv()
-
-# 全局变量用于传递预报天数
-_forecast_days = 3
 
 # 初始化 MCP 服务器
 mcp = FastMCP("WeatherServer")
@@ -20,6 +16,7 @@ ONECALL_API_BASE = "https://api.openweathermap.org/data/3.0/onecall"
 ONECALL_HISTORY_API_BASE = "https://api.openweathermap.org/data/3.0/onecall/timemachine"
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 USER_AGENT = "weather-app/1.0"
+
 
 async def get_coordinates(city: str) -> dict[str, Any] | None:
     """
@@ -63,15 +60,7 @@ async def fetch_weather_data(
 ) -> dict[str, Any] | None:
     """
     获取天气数据的统一函数，支持当前天气、预报和历史数据。
-    
-    :param lat: 纬度
-    :param lon: 经度
-    :param timestamp: Unix时间戳，如果提供则获取历史数据，否则获取当前/预报数据
-    :param exclude: 要排除的数据部分，用逗号分隔 (minutely,hourly,daily,alerts)
-                   仅对当前/预报数据有效
-    :return: 天气数据字典
     """
-    # 基础参数
     params = {
         "lat": lat,
         "lon": lon,
@@ -80,13 +69,10 @@ async def fetch_weather_data(
         "lang": "zh_cn"
     }
     
-    # 根据是否提供时间戳决定API端点和参数
     if timestamp is not None:
-        # 历史数据请求
         api_url = ONECALL_HISTORY_API_BASE
         params["dt"] = timestamp
     else:
-        # 当前/预报数据请求
         api_url = ONECALL_API_BASE
         if exclude:
             params["exclude"] = exclude
@@ -103,224 +89,91 @@ async def fetch_weather_data(
         except Exception as e:
             return {"error": f"请求失败: {str(e)}"}
 
-
-# 为了保持向后兼容性，可以创建包装函数
-# async def fetch_current_weather(lat: float, lon: float, exclude: Optional[str] = None) -> dict[str, Any] | None:
-#     """获取当前天气和预报信息的包装函数"""
-#     return await fetch_weather_data(lat, lon, exclude=exclude)
-
-
-# async def fetch_historical_weather(lat: float, lon: float, timestamp: int) -> dict[str, Any] | None:
-#     """获取历史天气数据的包装函数"""
-#     return await fetch_weather_data(lat, lon, timestamp=timestamp)
-
-def format_weather_data(data: dict[str, Any], city_name: str = "", format_type: str = "current") -> str:
-    """
-    通用天气数据格式化函数。
-    :param data: 天气数据
-    :param city_name: 城市名称
-    :param format_type: 格式类型 ("current", "forecast", "historical")
-    :return: 格式化的天气信息
-    """
-    if "error" in data:
-        return f"⚠️ {data['error']}"
-    
-    result = f"🌍 {city_name}\n" if city_name else ""
-    
-    if format_type == "current":
-        return result + _format_current_section(data.get("current", {}))
-    elif format_type == "forecast":
-        current_result = result + _format_current_section(data.get("current", {}))
-        forecast_result = _format_forecast_section(data.get("daily", []))
-        return f"{current_result}\n\n{forecast_result}"
-    elif format_type == "historical":
-        historical_data = data.get("data", [{}])[0] if data.get("data") else {}
-        return result + _format_historical_section(historical_data)
-    
-    return "⚠️ 未知的格式类型"
-
-def _format_current_section(current: dict[str, Any]) -> str:
-    """格式化当前天气部分"""
-    temp = current.get("temp", "N/A")
-    feels_like = current.get("feels_like", "N/A")
-    humidity = current.get("humidity", "N/A")
-    pressure = current.get("pressure", "N/A")
-    wind_speed = current.get("wind_speed", "N/A")
-    wind_deg = current.get("wind_deg", "N/A")
-    visibility = current.get("visibility", "N/A")
-    uvi = current.get("uvi", "N/A")
-    
-    weather_list = current.get("weather", [{}])
-    description = weather_list[0].get("description", "未知")
-    
-    dt = current.get("dt", 0)
-    update_time = datetime.fromtimestamp(dt, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-    
-    result = (
-        f"🕐 更新时间: {update_time}\n"
-        f"🌡 当前温度: {temp}°C (体感 {feels_like}°C)\n"
-        f"💧 湿度: {humidity}%\n"
-        f"🌬 风速: {wind_speed} m/s, 风向: {wind_deg}°\n"
-        f"🌤 天气: {description}\n"
-        f"📊 气压: {pressure} hPa\n"
-        f"☀️ 紫外线指数: {uvi}\n"
-    )
-    
-    if visibility != "N/A":
-        result += f"👁 能见度: {visibility/1000:.1f} km\n"
-    
-    return result
-
-def _format_forecast_section(daily: list[dict[str, Any]]) -> str:
-    """格式化预报部分"""
-    if not daily:
-        return "📅 暂无每日预报数据"
-    
-    # 获取全局变量中的天数，如果没有则默认为3
-    days = globals().get('_forecast_days', 3)
-    
-    result = f"📅 未来{min(days, len(daily))}天预报:\n\n"
-    
-    for day in daily[:days]:
-        dt = day.get("dt", 0)
-        date = datetime.fromtimestamp(dt, tz=timezone.utc).strftime("%m-%d")
-        
-        temp_day = day.get("temp", {}).get("day", "N/A")
-        temp_night = day.get("temp", {}).get("night", "N/A")
-        temp_max = day.get("temp", {}).get("max", "N/A")
-        temp_min = day.get("temp", {}).get("min", "N/A")
-        
-        weather_list = day.get("weather", [{}])
-        description = weather_list[0].get("description", "未知")
-        
-        humidity = day.get("humidity", "N/A")
-        wind_speed = day.get("wind_speed", "N/A")
-        pop = day.get("pop", 0)
-        
-        result += (
-            f"📆 {date}: {description}\n"
-            f"   🌡 {temp_min}°C ~ {temp_max}°C (白天{temp_day}°C, 夜间{temp_night}°C)\n"
-            f"   💧 湿度{humidity}% | 🌬风速{wind_speed}m/s | 🌧降水概率{pop*100:.0f}%\n\n"
-        )
-    
-    return result
-
-def _format_historical_section(historical: dict[str, Any]) -> str:
-    """格式化历史天气部分"""
-    temp = historical.get("temp", "N/A")
-    humidity = historical.get("humidity", "N/A")
-    pressure = historical.get("pressure", "N/A")
-    wind_speed = historical.get("wind_speed", "N/A")
-    
-    weather_list = historical.get("weather", [{}])
-    description = weather_list[0].get("description", "未知")
-    
-    dt = historical.get("dt", 0)
-    date_time = datetime.fromtimestamp(dt, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-    
-    return (
-        f"🕐 时间: {date_time}\n"
-        f"🌡 温度: {temp}°C\n"
-        f"💧 湿度: {humidity}%\n"
-        f"🌬 风速: {wind_speed} m/s\n"
-        f"🌤 天气: {description}\n"
-        f"📊 气压: {pressure} hPa\n"
-    )
-
 @mcp.tool()
-async def query_current_weather(city: str) -> str:
+async def query_weather(
+    city: str,
+    query_type: str = "current",
+    days: int = 3,
+    days_ago: int = 1
+) -> dict[str, Any]:
     """
-    查询指定城市的当前天气信息。
-    :param city: 城市名称（支持中英文）
-    :return: 格式化后的当前天气信息
-    """
-    # 获取经纬度
-    coord_data = await get_coordinates(city)
-    if "error" in coord_data:
-        return f"⚠️ {coord_data['error']}"
+    统一的天气查询工具，支持当前天气、预报和历史数据查询。
     
-    # 获取天气数据（排除小时和每日预报以减少数据量）
-    weather_data = await fetch_weather_data(
-        coord_data["lat"], 
-        coord_data["lon"], 
-        exclude="minutely,hourly,daily,alerts"
-    )
-    
-    city_display = f"{coord_data['name']}, {coord_data['country']}"
-    return format_weather_data(weather_data, city_display, "current")
-
-@mcp.tool()
-async def query_weather_forecast(city: str, days: int = 3) -> str:
-    """
-    查询指定城市的天气预报。
     :param city: 城市名称（支持中英文）
-    :param days: 预报天数（1-8天，默认3天）
-    :return: 格式化后的天气预报信息
+    :param query_type: 查询类型，可选值：
+        - "current": 当前天气
+        - "forecast": 天气预报
+        - "historical": 历史天气
+    :param days: 预报天数（1-8天，默认3天），仅在 query_type="forecast" 时生效
+    :param days_ago: 历史天数（1-5天前，默认1天前），仅在 query_type="historical" 时生效
+    :return: 天气数据，包含城市信息和查询类型
     """
-    if days < 1 or days > 8:
-        return "⚠️ 预报天数必须在 1-8 天之间"
+    
+    # 参数验证
+    if query_type not in ["current", "forecast", "historical"]:
+        return {"error": "query_type 必须是 'current', 'forecast', 或 'historical'"}
+    
+    if query_type == "forecast" and (days < 1 or days > 8):
+        return {"error": "预报天数必须在 1-8 天之间"}
+    
+    if query_type == "historical" and (days_ago < 1 or days_ago > 5):
+        return {"error": "历史天数必须在 1-5 天之间（免费版限制）"}
     
     # 获取经纬度
     coord_data = await get_coordinates(city)
     if "error" in coord_data:
-        return f"⚠️ {coord_data['error']}"
+        return {"error": coord_data["error"]}
     
-    # 获取天气数据（只保留每日预报）
+    # 根据查询类型设置参数
+    timestamp = None
+    exclude = None
+    
+    if query_type == "current":
+        exclude = "minutely,hourly,daily,alerts"
+    elif query_type == "forecast":
+        exclude = "minutely,hourly,alerts"
+    elif query_type == "historical":
+        # 计算历史时间戳
+        now = datetime.now(timezone.utc)
+        target_dt = now - timedelta(days=days_ago)
+        timestamp = int(target_dt.timestamp())
+    
+    # 获取天气数据
     weather_data = await fetch_weather_data(
-        coord_data["lat"], 
-        coord_data["lon"], 
-        exclude="minutely,hourly,alerts"
+        coord_data["lat"],
+        coord_data["lon"],
+        timestamp=timestamp,
+        exclude=exclude
     )
     
-    city_display = f"{coord_data['name']}, {coord_data['country']}"
-    
-    # 使用通用格式化函数，预报天数通过修改_format_forecast_section传递
-    # 临时保存天数到全局变量或通过其他方式传递
-    global _forecast_days
-    _forecast_days = days
-    
-    return format_weather_data(weather_data, city_display, "forecast")
-
-@mcp.tool()
-async def query_historical_weather(city: str, date: str) -> str:
-    """
-    查询指定城市的历史天气信息。
-    :param city: 城市名称（支持中英文）
-    :param date: 日期，格式为 YYYY-MM-DD（例如：2024-01-15）
-    :return: 格式化后的历史天气信息
-    """
-    try:
-        # 解析日期并转换为时间戳
-        date_obj = datetime.strptime(date, "%Y-%m-%d")
-        timestamp = int(date_obj.replace(tzinfo=timezone.utc).timestamp())
+    # 处理返回数据
+    if weather_data and "error" not in weather_data:
+        # 添加城市信息
+        weather_data["city_info"] = {
+            "name": coord_data["name"],
+            "country": coord_data["country"],
+            "coordinates": {
+                "lat": coord_data["lat"],
+                "lon": coord_data["lon"]
+            }
+        }
         
-        # 检查日期是否在允许范围内（过去5天内的数据免费）
-        current_time = int(time.time())
-        if timestamp > current_time:
-            return "⚠️ 不能查询未来的天气数据"
+        # 添加查询相关信息
+        weather_data["query_info"] = {
+            "type": query_type,
+            "city": city
+        }
         
-        # One Call API 3.0 历史数据有时间限制，免费版只能查询过去5天
-        days_ago = (current_time - timestamp) / (24 * 3600)
-        if days_ago > 5:
-            return f"⚠️ 免费版本只能查询过去5天的历史天气数据，无法查询 {date} 的数据"
-        
-    except ValueError:
-        return "⚠️ 日期格式错误，请使用 YYYY-MM-DD 格式（例如：2024-01-15）"
+        # 根据查询类型添加特定信息
+        if query_type == "forecast":
+            weather_data["query_info"]["requested_days"] = days
+            # 限制返回的天数
+            if "daily" in weather_data:
+                weather_data["daily"] = weather_data["daily"][:days]
+        elif query_type == "historical":
+            weather_data["query_info"]["days_ago"] = days_ago
     
-    # 获取经纬度
-    coord_data = await get_coordinates(city)
-    if "error" in coord_data:
-        return f"⚠️ {coord_data['error']}"
-    
-    # 获取历史天气数据
-    weather_data = await fetch_weather_data(
-        coord_data["lat"], 
-        coord_data["lon"], 
-        timestamp
-    )
-    
-    city_display = f"{coord_data['name']}, {coord_data['country']}"
-    return format_weather_data(weather_data, city_display, "historical")
+    return weather_data
 
 @mcp.tool()
 async def get_current_date() -> str:
@@ -340,5 +193,4 @@ async def get_current_date() -> str:
     )
 
 if __name__ == "__main__":
-    # 以标准 I/O 方式运行 MCP 服务器
     mcp.run(transport='stdio')
