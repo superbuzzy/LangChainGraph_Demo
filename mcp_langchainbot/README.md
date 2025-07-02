@@ -39,8 +39,6 @@
 - `.env`：存放 API Key 等敏感信息。
 - `servers_config.json`：定义 MCP 服务器的启动命令、参数和通信方式（如 stdio）。
 
-
-
 ## 参考
 
 - [LangChain 官方文档](https://python.langchain.com/)
