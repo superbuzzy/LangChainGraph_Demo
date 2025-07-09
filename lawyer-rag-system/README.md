@@ -4,25 +4,32 @@
 
 ## 目录结构
 ```
-lawyer-rag-system/
-├── backend/
-│   ├── main.py                # FastAPI主入口
-│   ├── rag_service.py         # RAG服务核心逻辑
-│   ├── sql_file.py            # 文档元数据管理
-│   ├── models.py              # Pydantic数据模型
-│   ├── requirements.txt       # 后端依赖
-│   ├── chroma_db/             # Chroma向量数据库文件
-│   └── db_file/               # SQLite数据库文件
-├── frontend/
-│   ├── src/                   # 前端源码
-│   ├── public/                # 静态资源
-│   ├── index.html
-│   ├── package.json           # 前端依赖
-│   └── vite.config.js         # Vite配置
-├── README.md                  # 项目说明文档
-└── .gitignore                 # Git忽略文件
-```
+<!--
+lawyer-rag-system/         # 项目根目录
+├── README.md              # 项目说明文档
+├── requirements.txt       # Python依赖包列表
+├── backend/               # 后端代码目录
+│   ├── main.py            # 后端主程序入口
+│   ├── models.py          # 数据模型定义
+│   ├── rag_service.py     # RAG相关服务逻辑
+│   ├── sql_file.py        # SQL数据库操作相关代码
+│   ├── chroma_db/         # Chroma向量数据库目录
+│   │   └── chroma.sqlite3 # Chroma数据库文件
+│   ├── db_file/           # 其他数据库文件目录
+│   │   └── documents.db   # 文档数据库文件
+│   └── uploads/           # 上传文档存储目录
+│       └── ...（上传的文档） # 用户上传的原始文档
+├── frontend/              # 前端代码目录
+│   ├── index.html         # 前端入口HTML文件
+│   ├── package.json       # 前端依赖及脚本配置
+│   ├── tailwind.config.js # Tailwind CSS配置文件
+│   ├── vite.config.js     # Vite构建工具配置
+│   ├── public/            # 前端静态资源目录
+│   └── src/               # 前端源码目录
+│       └── ...（前端源码） # 具体前端实现代码
+-->
 
+```
 
 ## 功能简介
 
@@ -133,6 +140,13 @@ npm run dev
 - 上传文档仅支持PDF和DOCX格式。
 - 向量数据库和文档数据库默认存储于`backend/chroma_db`和`backend/db_file`目录下。
 - 需配置本地大模型（如Ollama Qwen3）和CUDA环境以获得最佳性能。
+
+## 参考
+
+- [LangChain](https://github.com/langchain-ai/langchain)
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [Chroma](https://www.trychroma.com/)
+- [React](https://react.dev/)
 
 ## 贡献与许可
 
