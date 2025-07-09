@@ -12,6 +12,9 @@ from langchain_chroma import Chroma
 
 from sql_file import DocumentManager
 
+# from langgraph.checkpoint.memory import MemorySaver
+# memory = MemorySaver()
+
 class SimpleRAGService:
     def __init__(self):
         # 初始化embedding模型

@@ -13,9 +13,6 @@ from sql_file import DocumentManager
 # os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
 # os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
 
-# from langgraph.checkpoint.memory import MemorySaver
-# memory = MemorySaver()
-
 # http://localhost:8000/docs
 
 app = FastAPI(title="律师事务所RAG系统", version="1.0.0")
