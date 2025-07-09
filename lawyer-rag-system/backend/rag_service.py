@@ -1,16 +1,16 @@
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Dict, Any
+import os
 
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma   # from langchain_chroma import Chrom
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chat_models import init_chat_model
+from langchain_chroma import Chroma
 
 from sql_file import DocumentManager
-
 
 class SimpleRAGService:
     def __init__(self):
@@ -20,7 +20,8 @@ class SimpleRAGService:
             model_kwargs={'device': 'cuda'}  
         )
          # 初始化llm模型
-        self.llm = init_chat_model("ollama:qwen3:1.7b", temperature=0)
+        # self.llm = init_chat_model("ollama:qwen3:1.7b", temperature=0)
+        self.llm = init_chat_model("deepseek:deepseek-chat",api_key= os.getenv("DEEPSEEK_API_KEY"),temperature=0)
 
         # 清空已有的向量数据库（仅用于测试）
         import shutil
@@ -37,7 +38,7 @@ class SimpleRAGService:
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500,
             chunk_overlap=50,
-            separators=["\n\n", "\n", "。", "！", "？", "；", "，", " "],
+            separators=["\n\n", "\n", "。", "！", "？", "；", "，"],
             keep_separator = "end"
         )
         
@@ -106,7 +107,25 @@ class SimpleRAGService:
             
         except Exception as e:
             raise Exception(f"文档处理失败: {str(e)}")
-    
+        
+    # def enhanced_retrieval(self, query, k=5):
+        # from rank_bm25 import BM25Okapi
+        # from operator import itemgetter  
+        # import numpy as np        
+    #     # 准备语义检索
+    #     semantic_docs = self.vector_db.similarity_search(query, k=k*2)
+        
+    #     # 准备语义检索关键词检索
+    #     keyword_docs = bm25_search(query, k=k*2)
+        
+    #     # 准备语义检索混合排序
+    #     combined_results = rank_fusion(semantic_docs, keyword_docs)
+        
+    #     # 准备语义检索相关性过滤
+    #     filtered_results = filter_by_relevance_score(combined_results, threshold=0.7)
+        
+    #     return filtered_results[:k]
+
     def query_documents(self, query: str, k: int = 3) -> Dict[str, Any]:
         """文档问答"""
         try:
@@ -116,30 +135,24 @@ class SimpleRAGService:
             source_knowledge = "\n".join([x.page_content for x in relevant_docs])
 
             # 构建prompt
-            prompt = ChatPromptTemplate.from_template( """
-                你是一名专业的法律助理。请结合以下法律文献片段（source_knowledge）和用户问题（query），运用严谨的法律推理方法给出回答。如果你不知道就说不知道。
+            prompt = ChatPromptTemplate.from_template( """               
 
-                以下是相关文献片段：
+                你是一名资深法律专家，请基于以下法律文献回答问题：
+
                 {source_knowledge}
 
-                用户问题:
-                {query}
+                用户问题：{query}
 
-                请按照以下格式输出：
+                请按以下结构回答：
+                1. **法律问题识别**: 明确争议焦点和适用法律领域
+                2. **法条依据**: 列出相关法律条文（包含条文编号和具体内容）
+                3. **判例参考**: 引用相关判例或司法解释
+                4. **法律分析**: 结合具体情况进行逻辑推理
+                5. **结论建议**: 提供明确的法律意见和操作建议
+                6. **风险提示**: 说明可能存在的法律风险
 
-                <analysis>
-                1. 法律问题识别：简要梳理用户的法律需求与争议焦点  
-                2. 法律条文与判例引证：说明检索到的相关法律条文、司法解释或判例，并注明来源编号  
-                3. 推理过程：结合上下文资料和法律原则，逐步论证如何得出结论  
-                </analysis>
-
-                <conclusion>
-                - 法律结论：依据何种法律依据、原则或案例作何判定  
-                - 风险提示：如有必要，指出潜在风险或后续注意事项  
-                - 建议步骤：如需进一步操作（起草文书、申请诉讼等），给出简要建议  
-                </conclusion>
-
-            """)
+                注意：如果涉及争议性问题，请说明不同观点。
+                """)
 
             # 构建chain
             chain = prompt | self.llm | StrOutputParser()

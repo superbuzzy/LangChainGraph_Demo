@@ -10,13 +10,12 @@ class DocumentInfo(BaseModel):
     status: str  # "processing", "completed", "failed"
 
 class QueryRequest(BaseModel):
-    query: str
+    query: str = "买卖合同中，违约责任如何认定？"
     filters: Optional[Dict[str, Any]] = None
 
 class QueryResponse(BaseModel):
     answer: str
     sources: List[Dict[str, Any]]
-
 
 class UploadResponse(BaseModel):
     filename: str

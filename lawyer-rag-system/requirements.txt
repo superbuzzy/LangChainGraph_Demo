@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+pydantic
+python-multipart
+langchain
+chromadb
+sentence-transformers
+transformers
+torch
+huggingface-hub
+PyPDF2
+python-docx
+docx2txt
+tqdm
+numpy
+scikit-learn
+# 可选：如需 Ollama、DeepSeek、Qwen3 等大模型API支持，需根据实际环境添加相关依赖

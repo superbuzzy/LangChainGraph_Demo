@@ -1,15 +1,24 @@
 import sqlite3
 import os
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 import json
+from pathlib import Path
 
 class DocumentManager:
-    def __init__(self, db_path: str = r"E:\RAG_test\lawyer-rag-system\backend\db_file\documents.db"):
+
+    def __init__(self, db_path: str = None):
         """初始化文档管理器"""
+        if db_path is None:
+            db_path = Path(__file__).parent / "db_file/documents.db"
+        else:
+            db_path = Path(db_path)
+
         self.db_path = db_path
+        os.makedirs(self.db_path.parent, exist_ok=True)
+
         self.init_database()
-    
+
     def init_database(self):
         """初始化数据库表"""
         with sqlite3.connect(self.db_path) as conn:

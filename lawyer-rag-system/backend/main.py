@@ -13,15 +13,17 @@ from sql_file import DocumentManager
 # os.environ['HTTP_PROXY'] = 'http://127.0.0.1:7890'
 # os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:7890'
 
-from langgraph.checkpoint.memory import MemorySaver
-memory = MemorySaver()
+# from langgraph.checkpoint.memory import MemorySaver
+# memory = MemorySaver()
+
+# http://localhost:8000/docs
 
 app = FastAPI(title="律师事务所RAG系统", version="1.0.0")
 
 # 添加CORS中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React开发服务器
+    allow_origins=["http://localhost:5173"],  # React开发服务器
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,7 +59,11 @@ async def upload_document(
 
         suffix = Path(file.filename).suffix
         saved_name = f"{document_id}{suffix}"
-        file_path = Path(r"E:\RAG_test\lawyer-rag-system\backend\uploads") / saved_name
+
+        uploads_dir = Path(__file__).parent / "uploads"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        
+        file_path = Path(uploads_dir) / saved_name
         file_path.parent.mkdir(parents=True, exist_ok=True)
         
         # print("Saved file exists? ", file_path, file_path.exists())
@@ -89,6 +95,7 @@ async def query_documents(request: QueryRequest):
     """文档对话"""
     try:
         result = rag_service.query_documents(request.query)
+        print("Query result: ", result)
         return QueryResponse(**result)
         
     except Exception as e:
@@ -127,8 +134,8 @@ async def delete_document(document_id: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 
-
+# 第一章第八条是什么？
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app)
+    uvicorn.run("main:app",reload=True)
